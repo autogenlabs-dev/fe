@@ -1,0 +1,89 @@
+
+.activeClass {
+  color: red;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    overflow-x: hidden; /* Prevents horizontal scrolling */
+  }
+  
+  .header {
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 35px;
+    /* justify-content: space-between; */
+    padding: 10px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000; /* Ensures header is on top */
+  }
+  
+  .menu-btn {
+    font-size: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .sidebar {
+    height: 100%;
+    width: 60px; /* Initial width to show only icons */
+    background-color: #fff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 900; /* Ensures sidebar is below the header */
+    overflow-x: hidden;
+    transition: width 0.3s; /* Smooth transition for expanding */
+    padding-top: 60px; /* Space for header */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    pointer-events: auto; /* Allow interaction even when collapsed */
+  }
+  
+  .sidebar.open {
+    width: 250px; /* Expanded width to show icons and text */
+  }
+  
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center the icons when collapsed */
+    padding: 10px;
+    margin: 20px 0;
+    transition: background-color 0.3s;
+    width: 100%; /* Ensures full width for flex centering */
+  }
+  
+  .sidebar-link:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .sidebar-icon,
+  .sidebar svg {
+    width: 24px; /* Ensures consistent icon size */
+    height: 24px; /* Ensures consistent icon size */
+    flex-shrink: 0; /* Prevents icons from shrinking */
+  }
+  
+  .sidebar-text {
+    margin-left: 10px; /* Space between icon and text */
+    display: inline-block;
+    white-space: nowrap; /* Prevents text from wrapping */
+  }
+  
+  .content {
+    margin-top: 60px;
+    margin-left: 60px;
+    /* padding: 20px; */
+    z-index: 800;
+    position: relative;
+    min-height: calc(100vh - 60px);
+    overflow: auto;
+  }
+  
