@@ -29,6 +29,7 @@ import ClientList from "@/pages/Client";
 import AddClientForm from "@/pages/AddClientForm";
 import OtpVerify from "@/pages/OtpVerify";
 import ProjectTimesheetView from "@/components/ProjectTimesheetView/ProjectTimesheetView";
+import UsersTimesheet from "@/components/UsersTimesheet/UsersTimesheet";
 
 
 const private_route = [
@@ -51,10 +52,10 @@ const private_route = [
   { id: 17, path: "/expensesheetdetails", element: <ExpenseSheetDetails/> },
   { id: 18, path: "/project-timesheet-view/:projectId", element: <ProjectTimesheetView /> },
   { id: 193, path: "/requestexpensesheet", element: <RequestExpenseSheet /> },
-  { id: 192, path: "/bulk-time-entry", element: <BulkTimeEntries isFromDashboard={true} /> },
-  { id: 191, path: "/clients", element: <ClientList /> },
+  { id: 192, path: "/bulk-time-entry", element: <BulkTimeEntries isFromDashboard={true} /> },  { id: 191, path: "/clients", element: <ClientList /> },
   { id: 190, path: "/add-client", element: <AddClientForm /> },
-  { id: 190, path: "/edit-client/:clientId", element: <AddClientForm /> },
+  { id: 189, path: "/edit-client/:clientId", element: <AddClientForm /> },
+  { id: 188, path: "/users-timesheet", element: <UsersTimesheet /> },
   // { id: 119, path: "/verify-otp", element: <OtpVerify /> },
 ];
 

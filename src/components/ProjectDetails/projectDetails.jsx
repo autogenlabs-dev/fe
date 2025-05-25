@@ -196,12 +196,7 @@ const ProjectDetails = () => {
           </div>
         </div>
       </div>
-    );
-  };
-
-  const handleViewTimesheet = () => {
-    navigate(`/project-timesheet-view/${selectedProject?.id}`);
-  };
+    );  };
 
   return (
     <div className="w-full max-w-screen-lg mx-auto py-10">
@@ -374,18 +369,6 @@ const ProjectDetails = () => {
             </div>
           )}
           </div>
-        </div>
-      )}
-
-      {/* View Timesheet Button - Add this section */}
-      {userInfo?.roleAccess !== GENERAL && (
-        <div className="flex justify-center mt-4">
-          <Button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            onClick={handleViewTimesheet}
-          >
-            View Timesheet
-          </Button>
         </div>
       )}
     </div>

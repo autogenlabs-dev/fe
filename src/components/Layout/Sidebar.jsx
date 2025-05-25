@@ -193,6 +193,22 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </NavLink>
           </li>
         )}
+
+        {/* Users Timesheet (Non-General) */}
+        {userInfo?.roleAccess !== GENERAL && (
+          <li className="relative px-6 py-3">
+            <NavLink
+              exact="true"
+              title="View Users Timesheet" 
+              activeClassName="activeClass"
+              className={`inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 ${pathname === '/users-timesheet' ? "text-[#002147]": ""}`}
+              to="/users-timesheet"
+            >
+              <CalendarClock className="w-5 h-4" />
+              {isOpen && <span className="ml-4">Users Timesheet</span>}
+            </NavLink>
+          </li>
+        )}
       </ul>
     </div>
   );
