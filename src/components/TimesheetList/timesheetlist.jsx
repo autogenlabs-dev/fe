@@ -189,9 +189,8 @@ const handleTabClick = (day) => {
 
       // Compare the dates without the time part
       return timesheetDate === selectedDay;
-    });
-
-    setSelectedDate(new Date(day.value));
+    });    setSelectedDate(new Date(day.value));
+    console.log("TimesheetList: Setting selectedDate to:", new Date(day.value));
     setTimeSheetFilterData(filterData);
   }
 };

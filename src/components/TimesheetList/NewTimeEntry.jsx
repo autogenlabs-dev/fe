@@ -31,7 +31,6 @@ const NewTimeEntry = ({
   const { userInfo } = useSelector(authSelector);
   const { projects } = useSelector(projectSelector);
   const dispatch = useDispatch();
-
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [clients, setClients] = useState([]);
   const [timeSheetCreateLoading, setTimeSheetCreateLoading] = useState(false);
@@ -48,6 +47,15 @@ const NewTimeEntry = ({
 
   const initialDate = isValid(new Date(dateOfWorkFromTimesheet)) ? new Date(dateOfWorkFromTimesheet) : new Date();
   const formattedDate = format(initialDate, 'yyyy-MM-dd');
+  // Debug form values - only log when modal opens, not on every form change
+  useEffect(() => {
+    if (open) {
+      console.log("Modal opened - Debug info:");
+      console.log("Projects Available:", projects?.length || 0);
+      console.log("Projects Data:", projects?.slice(0, 3)); // Log first 3 projects for debugging
+      console.log("User role:", userInfo?.roleAccess);
+    }
+  }, [open, projects?.length, userInfo?.roleAccess]); // Removed formValues to prevent infinite loop
 
   function getMondayOfWeek(inputDate) {
     const date = new Date(inputDate);
@@ -55,51 +63,81 @@ const NewTimeEntry = ({
     const daysToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
     date.setDate(date.getDate() - daysToMonday);
     return date;
-  }
-
-  // Prefill form with data only once
+  }  // Initialize form when modal opens - only once per modal opening
   useEffect(() => {
-    // Only initialize form values once to prevent infinite updates
-    if (!formInitialized.current) {
-      if (Object.keys(data).length > 0) {
-        setValue("matter", data.projectId || data.matter || "");
-        setValue("activity", data.activity || "");
-        setValue("privateDescription", data.privateDescription || "");
-        setValue("hoursOfWork", data.time || 0);
-        setValue("dateOfWork", data.date ? format(new Date(data.date), 'yyyy-MM-dd') : formattedDate);
-      } else {
-        setValue("dateOfWork", formattedDate);
+    if (open) {
+      console.log("Form initialization triggered");
+      
+      if (Object.keys(data).length > 0 && isEdit) {
+        // For editing existing entries
+        console.log("Initializing form for edit mode with data:", data.id);
+        reset({
+          matter: data.projectId || data.matter || "",
+          activity: data.activity || "",
+          privateDescription: data.privateDescription || "",
+          hoursOfWork: data.time || 0,
+          dateOfWork: data.date ? format(new Date(data.date), 'yyyy-MM-dd') : formattedDate
+        });
+      } else if (!isEdit) {
+        // For new entries - use the selected date from timesheet
+        const newFormattedDate = isValid(new Date(dateOfWorkFromTimesheet)) ? 
+          format(new Date(dateOfWorkFromTimesheet), 'yyyy-MM-dd') : 
+          format(new Date(), 'yyyy-MM-dd');
+        
+        console.log("Initializing form for new entry. Date:", newFormattedDate);
+        
+        reset({
+          matter: "",
+          activity: "",
+          privateDescription: "",
+          hoursOfWork: 0,
+          dateOfWork: newFormattedDate
+        });
       }
-      formInitialized.current = true;
     }
-  }, []);
+  }, [open, isEdit]); // Removed dependencies that cause re-runs
 
   // Separate useEffect to handle the edit mode initialization - only run once
   useEffect(() => {
     if (isEdit && Object.keys(data).length > 0 && currentlySavedSheet.length === 0) {
       setCurrentlySavedSheet([data]);
     }
-  }, [isEdit, data]);
-
+  }, [isEdit, data]);  // Load initial data when component mounts (not dependent on modal opening)
   useEffect(() => {
-    dispatch(getClientsThunk({ token: userInfo?.access?.token }))
-      .unwrap()
-      .then((res) => setClients(res))
-      .catch(() => setClients([]));
-  }, [dispatch, userInfo]);
-
-  useEffect(() => {
-    if (!projects || projects.length === 0) {
+    if (userInfo?.access?.token) {
+      console.log("Initial data load - UserRole:", userInfo?.roleAccess);
+      
+      // Load projects based on user role - this should happen immediately
       if ([DIRECTOR, PROJECT_MANAGER, GENERAL, OPERATIONAL_DIRECTOR].includes(userInfo?.roleAccess)) {
+        console.log("Loading my projects for role:", userInfo?.roleAccess);
         dispatch(getMyProjects(userInfo?.access?.token));
       } else if ([ADMIN, OPERATIONAL_DIRECTOR].includes(userInfo?.roleAccess)) {
+        console.log("Loading all projects for admin role");
         dispatch(getProjects(userInfo?.access?.token));
       }
     }
-    if (!user || user?.length === 0) {
-      dispatch(getUsers(userInfo?.access?.token));
+  }, [dispatch, userInfo?.access?.token, userInfo?.roleAccess]);
+
+  // Load data when modal opens (additional data that might be needed)
+  useEffect(() => {
+    if (open && userInfo?.access?.token) {
+      console.log("Modal opened - Loading additional data");
+      
+      // Load clients
+      dispatch(getClientsThunk({ token: userInfo?.access?.token }))
+        .unwrap()
+        .then((res) => {
+          console.log("Clients loaded:", res?.length);
+          setClients(res);
+        })
+        .catch(() => setClients([]));
+
+      // Load users if not already loaded
+      if (!user || user?.length === 0) {
+        dispatch(getUsers(userInfo?.access?.token));
+      }
     }
-  }, []);
+  }, [open, dispatch, userInfo?.access?.token]);
 
   const submitData = async () => {
     console.log("Submit data called with currentlySavedSheet:", currentlySavedSheet);
@@ -210,48 +248,64 @@ const NewTimeEntry = ({
     } catch (error) {
       console.error("Error saving timesheet:", error);
       toastMessage(error.message || "Error in saving timesheet", "error");
-    }
-
-    setIsSaveLoading(false);
+    }    setIsSaveLoading(false);
     fetchingTimesheet();
-  };
-
-  const handleDateChange = (e) => {
-    const newDate = e.target.value;
-    setValue("dateOfWork", newDate); // Directly update form value
   };
 
   const FormInputs = () => {
     const isShowToProjManager = isProjManager && currentlySavedSheet?.length > 0 && userInfo.id != currentlySavedSheet[0]?.userId
     const isShowToAdminOrDirector = [ADMIN, DIRECTOR, OPERATIONAL_DIRECTOR].includes(userInfo?.roleAccess);
     return (
-      <div className={!isDashboard ? "bg-white p-6 rounded-lg shadow-md max-w-2xl w-full max-h-[85vh] overflow-y-auto relative" : "p-6"}>
-        <div className="mb-4 flex justify-between items-center">
+      <div className={!isDashboard ? "bg-white p-6 rounded-lg shadow-md max-w-2xl w-full max-h-[85vh] overflow-y-auto relative" : "p-6"}>        <div className="mb-4 flex justify-between items-center">
           <h2 className="text-xl font-bold">{isEdit ? "Edit Time Entry" : "New Time Entry"}</h2>
-          {!isDashboard && <button onClick={() => close()} className="text-gray-500 hover:text-black">✕</button>}
+          {!isDashboard && (
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Close button clicked");
+                close();
+              }} 
+              className="text-gray-500 hover:text-black text-xl font-bold px-2 py-1"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <form onSubmit={handleSubmit(saveData)} className="space-y-4">
-          <div className="flex flex-wrap gap-4">
-            {/* Matter (Project) Selection */}
+        <form 
+          onSubmit={handleSubmit(saveData)} 
+          className="space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-wrap gap-4">            {/* Matter (Project) Selection */}
             <div className="w-full md:flex-[0_0_30%]">
               <label htmlFor="matter" className="block mb-1 font-semibold">Project:</label>
-              <div className="flex items-center gap-2">
-                <select
+              <div className="flex items-center gap-2">                <select
                   id="matter"
                   className="w-full border p-2 rounded"
                   {...register("matter", { required: "Project is required" })}
-                  value={watch("matter") || ""}
+                  disabled={!projects || projects.length === 0}
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.stopPropagation()}
                 >
-                  <option value="">Select Project</option>
+                  <option value="">
+                    {!projects || projects.length === 0 ? "Loading projects..." : "Select Project"}
+                  </option>
                   {projects?.map((project) => {
                     if (project?.status == 'completed' || project?.status == 'rejected') {
                       return null
                     }
                     return (
-                      <option key={project?.id} value={project.id}>{project?.projectname}</option>
+                      <option key={project?.id} value={project.id}>
+                        {project?.projectname}
+                      </option>
                     )
                   })}
                 </select>
+                {(!projects || projects.length === 0) && (
+                  <div className="text-sm text-gray-500">Loading...</div>
+                )}
               </div>
               {errors?.matter && <p style={{ color: 'red', fontSize: '14px' }}>{errors?.matter?.message}</p>}
             </div>
@@ -272,14 +326,14 @@ const NewTimeEntry = ({
                 <option value="Other">Other</option>
               </select>
               {errors.activity && <p style={{ color: 'red', fontSize: '14px' }}>{errors.activity.message}</p>}
-            </div> */}
-            <div className="w-full md:flex-[0_0_30%]">
+            </div> */}            <div className="w-full md:flex-[0_0_30%]">
               <label htmlFor="activity" className="block mb-1 font-semibold">Activity:</label>
               <select
                 id="activity"
                 className="w-full border p-2 rounded"
-                {...register("activity", { required: "Activity is required" })} // Register the field properly
-                defaultValue={data.activity ?? ""} // Use defaultValue instead of value
+                {...register("activity", { required: "Activity is required" })}
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
               >
                 <option value="" disabled>Select Activity</option>
                 <option value="Consulting">Consulting</option>
@@ -296,16 +350,14 @@ const NewTimeEntry = ({
               <textarea id="privateDescription" className="w-full border p-2 rounded" {...register("privateDescription")}></textarea>
             </div>
 
-            {/* Date of Work */}
-            <div className="w-full md:flex-[0_0_30%]">
-              <label htmlFor="dateOfWork" className="block mb-1 font-semibold">Date of Work:</label>
-              <input
+            {/* Date of Work */}            <div className="w-full md:flex-[0_0_30%]">
+              <label htmlFor="dateOfWork" className="block mb-1 font-semibold">Date of Work:</label>              <input
                 type="date"
                 id="dateOfWork"
-                value={watch("dateOfWork")} // This ensures that the input updates dynamically
-                onChange={handleDateChange} // Update the form value on change
                 className="w-full border p-2 rounded"
                 {...register("dateOfWork", { required: "Date of work is required" })}
+                onClick={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
               />
               {errors.dateOfWork && <p style={{ color: 'red', fontSize: '14px' }}>{errors.dateOfWork.message}</p>}
             </div>
@@ -362,16 +414,30 @@ const NewTimeEntry = ({
       </div>
     )
   }
-
   if (isDashboard) return <FormInputs />
-
+  
   return (
     <>
       {children}
-      <div className={`fixed inset-0 bg-gray-200/80 flex items-center justify-center z-[9999] ${!open ? "hidden" : ""}`} onClick={() => close()}></div>
-      <div className={`fixed inset-0 top-10 flex items-center justify-center z-[99999] ${!open ? "hidden" : ""}`}>
-        <FormInputs />
-      </div>
+      {open && (
+        <div 
+          className="fixed inset-0 bg-gray-200/80 flex items-center justify-center z-[9999]" 
+          onMouseDown={(e) => {
+            // Only close if clicking on backdrop, not on modal content
+            if (e.target === e.currentTarget) {
+              close();
+            }
+          }}
+        >
+          <div 
+            className="mt-10" 
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FormInputs />
+          </div>
+        </div>
+      )}
     </>
   );
 };

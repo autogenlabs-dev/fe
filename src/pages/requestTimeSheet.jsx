@@ -141,6 +141,7 @@ const RequestTimeSheet = () => {
   // State for search, dropdown, pagination
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState("All");
+  const [selectedUser, setSelectedUser] = useState("All");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [timesheetToDelete, setTimesheetToDelete] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
@@ -233,11 +234,17 @@ const RequestTimeSheet = () => {
     
     const matchesSearch = searchTerm?.length > 0 ? userName?.toLowerCase()?.includes(searchTerm.toLowerCase()) : true;
     const matchesProject = selectedProject === "All" || projectName === selectedProject;
-    return matchesSearch && matchesProject;
+    const matchesUser = selectedUser === "All" || userName === selectedUser;
+    return matchesSearch && matchesProject && matchesUser;
   });
 
   // Get unique project names for dropdown
   const uniqueProjects = [...new Set(timeSheetFilteredData?.map(timesheet => timesheet?.project?.projectname).filter(Boolean))]; // Changed from projectName to projectname
+  
+  // Get unique user names for dropdown
+  const uniqueUsers = [...new Set(timeSheetFilteredData?.map(timesheet => {
+    return timesheet?.project?.projectMember?.find(user => user?.memberId === timesheet?.userId)?.user?.name;
+  }).filter(Boolean))];
 
   // Calculate pagination details
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -267,6 +274,18 @@ const RequestTimeSheet = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="border border-gray-300 rounded px-4 py-2 w-52 mr-4 h-[37]"
         />
+        <select
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 w-52 mr-4"
+        >
+          <option value="All">All Users</option>
+          {uniqueUsers?.map((userName, index) => (
+            <option key={index} value={userName}>
+              {userName}
+            </option>
+          ))}
+        </select>
         <select
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
